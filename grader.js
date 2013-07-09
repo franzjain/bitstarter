@@ -4,6 +4,8 @@ var program = require('commander');
 var cheerio = require('cheerio');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
+var restler = require('restler');
+var util = require('util');
 
 var assertFileExists = function(infile){
   var instr = infile.toString();
@@ -33,16 +35,31 @@ var checkHtmlFile = function(htmlfile, checksfile){
   return out;
 };
 
+var checkRemoteHtmlFile = function(url, checksfile, checkHtmlFileFn){
+  restler.get(url).on('complete', 
+    function(result, response){
+      if(result instanceof Error){
+        console.error('Error: $s', util.format(response.message));
+      }else{  
+        //console.log('writing to tmp.txt');
+        fs.writeFileSync("tmp.txt", result); 
+        var resultVal = checkHtmlFileFn("tmp.txt", checksfile);
+        //console.log('resultVal=%s', util.format(resultVal));
+        var outJson = JSON.stringify(resultVal, null, 4);
+        console.log(outJson); 
+      }
+    }
+  );
+} 
+
 var clone = function(fn){
   return fn.bind({});
 };
 
 if(require.main == module){
-  program.option('-c, --checks <check_file>', 'path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT).option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT).parse(process.argv);
+  program.option('-c, --checks <check_file>', 'path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT).option('-f, --url <html_file>', 'url to index.html', null, null).parse(process.argv);
   
-  var checkJson = checkHtmlFile(program.file, program.checks);
-  var outJson = JSON.stringify(checkJson, null, 4);
-  console.log(outJson);
+  checkRemoteHtmlFile(program.url, program.checks, checkHtmlFile);
 } else{
   exports.checkHtmlFile = checkHtmlFile;
 }
