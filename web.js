@@ -5,7 +5,7 @@ var htmlfile = "index.html";
 var app = express.createServer(express.logger());
 
 app.configure(function(){
-                app.use("/", express.static("/home/franz/git/startup/bitstarter"));
+                app.use("/", express.static(__dirname));
               });
 
 var port = process.env.PORT || 8080;
